@@ -1,6 +1,9 @@
 ### Hi there 👋
 
-[![Elliott Zhao's GitHub stats](https://github-readme-stats.vercel.app/api?username=ElliottZhao&show_icons=true)](https://github.com/ElliottZhao)
+[![GitHub stats](https://github-readme-stats.vercel.app/api?username=ElliottZhao&show_icons=true)](https://github.com/ElliottZhao)
+
+[![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=ElliottZhao)](https://github.com/ElliottZhao)
+
 
 我可能是一个懒惰的人，但是我仍然愿意为开源社区做点事……
 
