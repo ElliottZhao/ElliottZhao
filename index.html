@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>单词拼读练习</title>
+    <style>
+        :root {
+            --primary-color: #007AFF;
+            --error-color: #FF3B30;
+            --success-color: #34C759;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell;
+            background: #F5F5F7;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .word-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .word {
+            font-family: Arial, sans-serif;
+            font-size: clamp(48px, 10vw, 72px);
+            cursor: pointer;
+            text-align: center;
+            word-break: break-word;
+        }
+
+        .pronunciation-btns {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .pronounce-btn {
+            background: #F0F0F5;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .pronounce-btn:hover {
+            background: #E0E0E8;
+        }
+
+        .phonetic {
+            font-family: 'Times New Roman', serif;
+            font-size: clamp(24px, 5vw, 32px);
+            text-align: center;
+            color: #666;
+            margin: 10px 0;
+        }
+
+        .meaning {
+            font-family: '微软雅黑', sans-serif;
+            font-size: clamp(24px, 5vw, 32px);
+            text-align: center;
+            color: #333;
+            margin: 20px 0;
+        }
+
+        .drop-area {
+            background: #F8F9FA;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        #answer-line {
+            border-bottom: 3px solid var(--primary-color);
+            min-height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 8px;
+        }
+
+        .syllables-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .syllable {
+            background: var(--primary-color);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+            font-size: clamp(28px, 5vw, 36px);
+            transition: transform 0.2s;
+        }
+
+        .syllable:hover {
+            transform: scale(1.05);
+        }
+
+        #next-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 25px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 20px auto;
+            display: block;
+            transition: opacity 0.3s;
+        }
+
+        #next-btn:hover {
+            opacity: 0.9;
+        }
+
+        .vowel {
+            color: var(--error-color);
+        }
+
+        .consonant {
+            color: var(--primary-color);
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .error {
+            animation: shake 0.15s 3;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 16px;
+            }
+            
+            .drop-area {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="word-container">
+            <div class="word" id="word"></div>
+            <div class="pronunciation-btns">
+                <button class="pronounce-btn" onclick="speakWord('en-US')">🇺🇸 美音</button>
+                <button class="pronounce-btn" onclick="speakWord('en-GB')">🇬🇧 英音</button>
+            </div>
+        </div>
+        <div class="phonetic" id="phonetic"></div>
+        <div class="meaning" id="meaning"></div>
+        <div class="drop-area">
+            <div id="answer-line"></div>
+            <div id="syllables" class="syllables-container"></div>
+        </div>
+        <button id="next-btn">下一页</button>
+    </div>
+
+    <script>
+        let wordList = [];
+        let currentWordIndex = 0;
+        let originalWord = '';
+        let isSplit = false;
+        const synth = window.speechSynthesis;
+
+        async function loadWords() {
+            try {
+                const response = await fetch('./words.txt');
+                const text = await response.text();
+                wordList = text.split('\n').map(line => {
+                    const [word, phonetic, meaning, syllables] = line.split('|');
+                    return {
+                        word: word.trim(),
+                        phonetic: phonetic.trim(),
+                        meaning: meaning.trim(),
+                        syllables: syllables.split(',').map(s => s.trim())
+                    };
+                });
+                initWord();
+            } catch (error) {
+                console.error('Failed to load words:', error);
+            }
+        }
+
+        function initWord() {
+            const { word, phonetic, meaning, syllables } = wordList[currentWordIndex];
+            document.getElementById('word').textContent = word;
+            document.getElementById('phonetic').textContent = phonetic;
+            document.getElementById('meaning').textContent = meaning;
+            originalWord = word;
+            
+            const shuffled = [...syllables].sort(() => Math.random() - 0.5);
+            document.getElementById('syllables').innerHTML = shuffled
+                .map(s => `<div class="syllable">${s}</div>`)
+                .join('');
+        }
+
+        function speakWord(lang) {
+            const engUtterance = new SpeechSynthesisUtterance(originalWord);
+            engUtterance.lang = lang;
+            
+            const chiUtterance = new SpeechSynthesisUtterance(wordList[currentWordIndex].meaning);
+            chiUtterance.lang = 'zh-CN';
+            
+            engUtterance.onend = () => synth.speak(chiUtterance);
+            synth.speak(engUtterance);
+        }
+
+        function splitWord() {
+            const word = document.getElementById('word');
+            word.innerHTML = originalWord.split('').map(c => {
+                if ('aeiouAEIOU'.includes(c)) {
+                    return `<span class="vowel">${c}</span>`;
+                }
+                return `<span class="consonant">${c}</span>`;
+            }).join('');
+            isSplit = true;
+        }
+
+        function mergeWord() {
+            document.getElementById('word').textContent = originalWord;
+            isSplit = false;
+        }
+
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'word') {
+                isSplit ? mergeWord() : splitWord();
+            }
+            else if (e.target.classList.contains('syllable')) {
+                const syllable = e.target;
+                if (syllable.parentElement.id === 'syllables') {
+                    document.getElementById('answer-line').appendChild(syllable);
+                } else {
+                    document.getElementById('syllables').appendChild(syllable);
+                }
+                checkAnswer();
+            }
+            else if (e.target.id === 'next-btn') {
+                currentWordIndex = (currentWordIndex + 1) % wordList.length;
+                updateUI();
+            }
+        });
+
+        function updateUI() {
+            document.getElementById('answer-line').innerHTML = '';
+            initWord();
+            mergeWord();
+        }
+
+        function checkAnswer() {
+            const answer = [...document.getElementById('answer-line').children]
+                .map(s => s.textContent)
+                .join('');
+            
+            if (answer === originalWord) {
+                const word = document.getElementById('word');
+                word.style.transform = 'scale(1.2)';
+                word.style.transition = 'transform 0.3s';
+                setTimeout(() => {
+                    word.style.transform = 'scale(1)';
+                }, 500);
+                document.getElementById('syllables').innerHTML = '';
+            } else if (answer.length === originalWord.length && answer !== originalWord) {
+                document.getElementById('answer-line').classList.add('error');
+                setTimeout(() => {
+                    document.getElementById('answer-line').classList.remove('error');
+                    resetSyllables();
+                }, 500);
+            }
+        }
+
+        function resetSyllables() {
+            const syllables = [...document.getElementById('syllables').children];
+            const answer = [...document.getElementById('answer-line').children];
+            answer.forEach(s => document.getElementById('syllables').appendChild(s));
+            syllables.sort(() => Math.random() - 0.5).forEach(s => {
+                document.getElementById('syllables').appendChild(s);
+            });
+        }
+
+        // 初始化
+        loadWords();
+    </script>
+</body>
+</html>

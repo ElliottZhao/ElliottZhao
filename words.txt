@@ -1,0 +1,6 @@
+apple|/ˈæpl/|苹果|ap,ple
+banana|/bəˈnɑːnə/|香蕉|ba,na,na
+orange|/ˈɔːrɪndʒ/|橙子|or,an,ge
+pear|/pɪər/|梨|pe,ar
+pineapple|/ˈpɪnəpəl/|菠萝|pi,ne,apple
+watermelon|/ˈwɔːtərˈmelən/|西瓜|wa,ter,mel,on
